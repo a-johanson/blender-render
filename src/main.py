@@ -16,15 +16,10 @@ for module in modules_to_remove:
 from blender_render import BlenderScene, BlenderShaderRenderer, scene
 
 scene = BlenderScene()
-scene.triangulate_scene()
 
 triangle_data = scene.triangle_data()
 print("Vertex count:", len(triangle_data.vertices))
 print("Normal count:", len(triangle_data.normals))
-print("Largest index:", max([max(indices) for indices in triangle_data.indices]))
-print(triangle_data.vertices)
-print(triangle_data.normals)
-print(triangle_data.indices)
 
 renderer = BlenderShaderRenderer()
 projection_matrix = scene.projection_matrix()

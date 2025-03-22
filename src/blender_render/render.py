@@ -89,9 +89,12 @@ class BlenderShaderRenderer:
         vertex_buffer.attr_fill("position", triangles.vertices)
         vertex_buffer.attr_fill("normal", triangles.normals)
 
-        index_buffer = gpu.types.GPUIndexBuf(type="TRIS", seq=triangles.indices)
-
-        batch = gpu.types.GPUBatch(type="TRIS", buf=vertex_buffer, elem=index_buffer)
+        batch = None
+        if triangles.indices is not None:
+            index_buffer = gpu.types.GPUIndexBuf(type="TRIS", seq=triangles.indices)
+            batch = gpu.types.GPUBatch(type="TRIS", buf=vertex_buffer, elem=index_buffer)
+        else:
+            batch = gpu.types.GPUBatch(type="TRIS", buf=vertex_buffer)
 
         offscreen = gpu.types.GPUOffScreen(width, height, format="RGBA32F")
 
