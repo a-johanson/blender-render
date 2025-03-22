@@ -15,7 +15,7 @@ class FloatImage:
         self.height = height
         self.channels = channels
         self.data = np.array(data, dtype=np.float32)
-    
+
     def normalize_channel(self, channel: int, value_range: float = 1.0):
         max_value = np.max(self.data[channel::self.channels])
         min_value = np.min(self.data[channel::self.channels])
@@ -23,7 +23,7 @@ class FloatImage:
             self.data[channel::self.channels] = 0.0
         else:
             self.data[channel::self.channels] = value_range * ((self.data[channel::self.channels] - min_value) / (max_value - min_value))
-    
+
     def normalize_channels_independently(self, value_range: float = 1.0):
         for channel in range(self.channels):
             self.normalize_channel(channel, value_range)
@@ -40,7 +40,6 @@ class FloatImage:
         image.file_format = "PNG"
         image.save(filepath=path)
 
-    
     def to_binary_file(self, path: str):
         with open(path, "wb") as file:
             file.write(self.width.to_bytes(4, "little"))
@@ -68,12 +67,12 @@ class BlenderShaderRenderer:
         shader_info.fragment_source(self._read_file("fragment_shader.glsl"))
 
         self.shader = gpu.shader.create_from_info(shader_info)
-    
+
     def _read_file(self, relative_path: str):
         filepath = os.path.join(os.path.dirname(__file__), relative_path)
         with open(filepath, "r") as file:
             return file.read()
-        
+
     def render_triangles(
             self,
             triangles: MeshTriangles,

@@ -24,10 +24,10 @@ class BlenderScene:
 
     def _view_matrix(self):
         return self.camera.matrix_world.inverted()
-    
+
     def projection_matrix(self):
         return self.camera.calc_matrix_camera(bpy.context.evaluated_depsgraph_get())
-    
+
     def triangle_data(self) -> MeshTriangles:
         view_matrix = self._view_matrix()
         # projection_matrix = self._projection_matrix()
@@ -45,7 +45,7 @@ class BlenderScene:
             model_matrix = obj.matrix_world
             model_view_matrix = view_matrix @ model_matrix
             normal_matrix = model_view_matrix.inverted().transposed().to_3x3()
-            
+
             print("Model-View Matrix:")
             print(model_view_matrix)
 
@@ -54,11 +54,6 @@ class BlenderScene:
 
             view_vertices = [(model_view_matrix @ vertex.co.to_4d()).to_3d() for vertex in mesh.vertices]
             view_vertex_normals = [(normal_matrix @ vertex.normal).normalized() for vertex in mesh.vertices]
-
-            # vertex_offest = len(all_vertices)
-            # assert vertex_offest == len(all_normals), "Vertices and normals should have the same length"
-            # all_vertices.extend(view_vertices)
-            # all_normals.extend(view_normals)
 
             for face in mesh.polygons:
                 face_loops = [mesh.loops[loop_index] for loop_index in face.loop_indices]
@@ -77,5 +72,5 @@ class BlenderScene:
                     all_normals.extend([face_normals[0], face_normals[2], face_normals[3]])
                 else:
                     raise ValueError("Only triangles and quads are supported")
-        
+
         return MeshTriangles(all_vertices, all_normals, None)
