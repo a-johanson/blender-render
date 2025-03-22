@@ -1,7 +1,7 @@
 from typing import Sequence
 import bpy
 import gpu
-from mathutils import Matrix
+from mathutils import Matrix, Vector
 import os
 import struct
 import numpy as np
@@ -53,6 +53,7 @@ class BlenderShaderRenderer:
     def __init__(self):
         shader_info = gpu.types.GPUShaderCreateInfo()
         shader_info.push_constant("MAT4", "projectionMatrix")
+        shader_info.push_constant("VEC3", "lightPosition")
         shader_info.vertex_in(0, "VEC3", "position")
         shader_info.vertex_in(1, "VEC3", "normal")
 
@@ -77,6 +78,7 @@ class BlenderShaderRenderer:
             self,
             triangles: MeshTriangles,
             projection_matrix: Matrix,
+            light_position: Vector,
             width: int,
             height: int
         ) -> FloatImage:
@@ -105,6 +107,7 @@ class BlenderShaderRenderer:
             gpu.state.face_culling_set("BACK")
             gpu.state.front_facing_set(False)
             self.shader.uniform_float("projectionMatrix", projection_matrix)
+            self.shader.uniform_float("lightPosition", light_position)
             batch.draw(self.shader)
             buffer = fb.read_color(0, 0, width, height, 4, 0, "FLOAT")
             gpu.state.depth_mask_set(False)

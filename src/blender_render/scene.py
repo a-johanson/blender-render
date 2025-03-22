@@ -1,40 +1,45 @@
 import bpy
 from dataclasses import dataclass
-from typing import Sequence, Optional
+from typing import Any, Optional, Sequence
+from mathutils import Matrix, Vector
 
 @dataclass
 class MeshTriangles:
-    vertices: Sequence[Sequence[float]]
-    normals: Sequence[Sequence[float]]
+    vertices: Sequence[Vector]
+    normals: Sequence[Vector]
     indices: Optional[Sequence[Sequence[int]]] # One index sequence per triangle; if None, each triplet of vertices forms a triangle.
 
 class BlenderScene:
     def __init__(self):
-        self.camera = self._first_camera()
+        self.camera = self._first_object("CAMERA")
         assert self.camera is not None, "No camera found in the scene"
+        self.light = self._first_object("LIGHT")
+        assert self.light is not None, "No light found in the scene"
+        assert self.light.data.type == "POINT", "Only point lights are supported"
         bpy.context.scene.camera = self.camera
         bpy.context.view_layer.update()
-        # TODO: get first light in scene
 
-    def _first_camera(self):
+    def _first_object(self, type_name: str) -> Optional[bpy.types.Object]:
         for obj in bpy.context.scene.objects:
-            if obj.type == "CAMERA":
+            if obj.type == type_name:
                 return obj
         return None
 
-    def _view_matrix(self):
+    def _view_matrix(self) -> (Any | Matrix):
         return self.camera.matrix_world.inverted()
 
-    def projection_matrix(self):
+    def projection_matrix(self) -> Matrix:
         return self.camera.calc_matrix_camera(bpy.context.evaluated_depsgraph_get())
+
+    def light_position(self) -> Vector:
+        light_model_matrix = self.light.matrix_world
+        return (self._view_matrix() @ light_model_matrix).to_translation()
 
     def triangle_data(self) -> MeshTriangles:
         view_matrix = self._view_matrix()
-        # projection_matrix = self._projection_matrix()
 
         all_vertices = []
         all_normals = []
-        # all_indices = []
 
         mesh_objects = [obj for obj in bpy.context.scene.objects if obj.type == "MESH"]
 
