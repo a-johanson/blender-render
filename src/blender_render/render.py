@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Sequence, Set
 import bpy
 import gpu
 from mathutils import Matrix, Vector
@@ -40,13 +40,19 @@ class FloatImage:
         image.file_format = "PNG"
         image.save(filepath=path)
 
-    def to_binary_file(self, path: str):
+    def to_binary_file(self, path: str, channels_to_store: Set[int] = None):
+        if channels_to_store is None or len(channels_to_store) == 0:
+            channels_to_store = set(range(self.channels))
+        assert all(0 <= channel < self.channels for channel in channels_to_store), "Invalid channel index"
+
         with open(path, "wb") as file:
             file.write(self.width.to_bytes(4, "little"))
             file.write(self.height.to_bytes(4, "little"))
-            file.write(self.channels.to_bytes(4, "little"))
-            for value in np.nditer(self.data):
-                file.write(struct.pack("<f", value))
+            file.write(len(channels_to_store).to_bytes(4, "little"))
+            iter = np.nditer(self.data, flags=["c_index"])
+            for value in iter:
+                if iter.index % self.channels in channels_to_store:
+                    file.write(struct.pack("<f", value))
 
 
 class BlenderShaderRenderer:
