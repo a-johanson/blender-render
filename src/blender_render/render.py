@@ -5,7 +5,7 @@ from mathutils import Matrix, Vector
 import os
 import struct
 import numpy as np
-from .scene import MeshTriangles
+from .scene import BlenderScene, MeshTriangles
 
 
 class FloatImage:
@@ -45,11 +45,13 @@ class FloatImage:
             channels_to_store = set(range(self.channels))
         assert all(0 <= channel < self.channels for channel in channels_to_store), "Invalid channel index"
 
+        flipped_data = self.data.reshape((self.height, self.width, self.channels))[::-1, :, :].flatten()
+
         with open(path, "wb") as file:
             file.write(self.width.to_bytes(4, "little"))
             file.write(self.height.to_bytes(4, "little"))
             file.write(len(channels_to_store).to_bytes(4, "little"))
-            iter = np.nditer(self.data, flags=["c_index"])
+            iter = np.nditer(flipped_data, flags=["c_index"])
             for value in iter:
                 if iter.index % self.channels in channels_to_store:
                     file.write(struct.pack("<f", value))
@@ -58,8 +60,10 @@ class FloatImage:
 class BlenderShaderRenderer:
     def __init__(self):
         shader_info = gpu.types.GPUShaderCreateInfo()
-        shader_info.push_constant("MAT4", "projectionMatrix")
+        shader_info.push_constant("MAT4", "viewProjectionMatrix")
+        shader_info.push_constant("VEC3", "cameraPosition")
         shader_info.push_constant("VEC3", "lightPosition")
+        shader_info.push_constant("FLOAT", "orientationOffset")
         shader_info.vertex_in(0, "VEC3", "position")
         shader_info.vertex_in(1, "VEC3", "normal")
 
@@ -83,8 +87,10 @@ class BlenderShaderRenderer:
     def render_triangles(
             self,
             triangles: MeshTriangles,
-            projection_matrix: Matrix,
+            view_projection_matrix: Matrix,
+            camera_position: Vector,
             light_position: Vector,
+            orientation_offset: float,
             width: int,
             height: int
         ) -> FloatImage:
@@ -112,8 +118,10 @@ class BlenderShaderRenderer:
             gpu.state.depth_test_set("LESS")
             gpu.state.face_culling_set("BACK")
             gpu.state.front_facing_set(False)
-            self.shader.uniform_float("projectionMatrix", projection_matrix)
+            self.shader.uniform_float("viewProjectionMatrix", view_projection_matrix)
+            self.shader.uniform_float("cameraPosition", camera_position)
             self.shader.uniform_float("lightPosition", light_position)
+            self.shader.uniform_float("orientationOffset", orientation_offset)
             batch.draw(self.shader)
             buffer = fb.read_color(0, 0, width, height, 4, 0, "FLOAT")
             gpu.state.depth_mask_set(False)

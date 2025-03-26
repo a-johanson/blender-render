@@ -25,19 +25,19 @@ class BlenderScene:
                 return obj
         return None
 
-    def _view_matrix(self) -> (Any | Matrix):
+    def camera_view_matrix(self) -> (Any | Matrix):
         return self.camera.matrix_world.inverted()
 
-    def projection_matrix(self) -> Matrix:
-        return self.camera.calc_matrix_camera(bpy.context.evaluated_depsgraph_get())
+    def camera_projection_matrix(self, aspect_ratio: float) -> Matrix:
+        return self.camera.calc_matrix_camera(depsgraph=bpy.context.evaluated_depsgraph_get(), scale_x=aspect_ratio)
+
+    def camera_position(self) -> Vector:
+        return self.camera.matrix_world.to_translation()
 
     def light_position(self) -> Vector:
-        light_model_matrix = self.light.matrix_world
-        return (self._view_matrix() @ light_model_matrix).to_translation()
+        return self.light.matrix_world.to_translation()
 
-    def triangle_data(self) -> MeshTriangles:
-        view_matrix = self._view_matrix()
-
+    def world_triangle_data(self) -> MeshTriangles:
         all_vertices = []
         all_normals = []
 
@@ -48,23 +48,22 @@ class BlenderScene:
             print(f"Processing object: {obj.name}")
 
             model_matrix = obj.matrix_world
-            model_view_matrix = view_matrix @ model_matrix
-            normal_matrix = model_view_matrix.inverted().transposed().to_3x3()
+            normal_matrix = model_matrix.inverted().transposed().to_3x3()
 
-            print("Model-View Matrix:")
-            print(model_view_matrix)
+            print("Model Matrix:")
+            print(model_matrix)
 
             print("Normal Matrix")
             print(normal_matrix)
 
-            view_vertices = [(model_view_matrix @ vertex.co.to_4d()).to_3d() for vertex in mesh.vertices]
-            view_vertex_normals = [(normal_matrix @ vertex.normal).normalized() for vertex in mesh.vertices]
+            world_vertices = [(model_matrix @ vertex.co.to_4d()).to_3d() for vertex in mesh.vertices]
+            world_vertex_normals = [(normal_matrix @ vertex.normal).normalized() for vertex in mesh.vertices]
 
             for face in mesh.polygons:
                 face_loops = [mesh.loops[loop_index] for loop_index in face.loop_indices]
-                face_vertices = [view_vertices[loop.vertex_index] for loop in face_loops]
+                face_vertices = [world_vertices[loop.vertex_index] for loop in face_loops]
                 if face.use_smooth:
-                    face_normals = [view_vertex_normals[loop.vertex_index] for loop in face_loops]
+                    face_normals = [world_vertex_normals[loop.vertex_index] for loop in face_loops]
                 else:
                     face_normals = [(normal_matrix @ loop.normal).normalized() for loop in face_loops]
                 if len(face_vertices) == 3:
