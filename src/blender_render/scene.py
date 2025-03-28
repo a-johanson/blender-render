@@ -11,17 +11,16 @@ class MeshTriangles:
 
 class BlenderScene:
     def __init__(self):
-        self.camera = self._first_object("CAMERA")
-        assert self.camera is not None, "No camera found in the scene"
-        self.light = self._first_object("LIGHT")
-        assert self.light is not None, "No light found in the scene"
-        assert self.light.data.type == "POINT", "Only point lights are supported"
+        self.camera = self._first_camera()
+        assert self.camera is not None, "No camera with perspective projection found in the scene"
+        self.light_camera = self._first_camera(camera_type="ORTHO")
+        assert self.light_camera is not None, "No camera with orthogonal projection found in the scene for lighting"
         bpy.context.scene.camera = self.camera
         bpy.context.view_layer.update()
 
-    def _first_object(self, type_name: str) -> Optional[bpy.types.Object]:
+    def _first_camera(self, camera_type="PERSP") -> Optional[bpy.types.Object]:
         for obj in bpy.context.scene.objects:
-            if obj.type == type_name:
+            if obj.type == "CAMERA" and obj.data.type == camera_type:
                 return obj
         return None
 
@@ -34,8 +33,8 @@ class BlenderScene:
     def camera_position(self) -> Vector:
         return self.camera.matrix_world.to_translation()
 
-    def light_position(self) -> Vector:
-        return self.light.matrix_world.to_translation()
+    def light_direction(self) -> Vector:
+        return self.light_camera.matrix_world.col[2].to_3d().normalized()
 
     def world_triangle_data(self) -> MeshTriangles:
         all_vertices = []

@@ -62,7 +62,7 @@ class BlenderShaderRenderer:
         shader_info = gpu.types.GPUShaderCreateInfo()
         shader_info.push_constant("MAT4", "viewProjectionMatrix")
         shader_info.push_constant("VEC3", "cameraPosition")
-        shader_info.push_constant("VEC3", "lightPosition")
+        shader_info.push_constant("VEC3", "lightDirection")
         shader_info.push_constant("FLOAT", "orientationOffset")
         shader_info.vertex_in(0, "VEC3", "position")
         shader_info.vertex_in(1, "VEC3", "normal")
@@ -89,7 +89,7 @@ class BlenderShaderRenderer:
             triangles: MeshTriangles,
             view_projection_matrix: Matrix,
             camera_position: Vector,
-            light_position: Vector,
+            light_direction: Vector,
             orientation_offset: float,
             width: int,
             height: int
@@ -120,7 +120,7 @@ class BlenderShaderRenderer:
             gpu.state.front_facing_set(False)
             self.shader.uniform_float("viewProjectionMatrix", view_projection_matrix)
             self.shader.uniform_float("cameraPosition", camera_position)
-            self.shader.uniform_float("lightPosition", light_position)
+            self.shader.uniform_float("lightDirection", light_direction)
             self.shader.uniform_float("orientationOffset", orientation_offset)
             batch.draw(self.shader)
             buffer = fb.read_color(0, 0, width, height, 4, 0, "FLOAT")

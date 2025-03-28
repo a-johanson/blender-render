@@ -1,5 +1,4 @@
 void main() {
-    vec3 lightDirection = normalize(lightPosition - pos);
     vec3 normal = normalize(norm);
     float normal_amount = dot(normal, lightDirection);
     float diffuse = max(normal_amount, 0.0f);
@@ -15,6 +14,7 @@ void main() {
     vec2 dir_screen = pp_clip.xy / pp_clip.w - pm_clip.xy / pm_clip.w;
     // Scale the y component by -1 to compensate for flipping the image horizontally in FloatImage.to_binary_file()
     float orientation = atan(-dir_screen.y, dir_screen.x);
+    orientation = isnan(orientation) ? 0.0 : orientation;
 
     float depth = length(pos - cameraPosition);
 
