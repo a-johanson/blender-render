@@ -72,9 +72,13 @@ class BlenderShaderRenderer:
             fragment_source=__class__._read_file("fragment_shader.glsl"),
             constants=[
                 ShaderAttribute("MAT4", "viewProjectionMatrix"),
+                ShaderAttribute("MAT4", "lightMatrix"),
                 ShaderAttribute("VEC3", "cameraPosition"),
                 ShaderAttribute("VEC3", "lightDirection"),
                 ShaderAttribute("FLOAT", "orientationOffset"),
+            ],
+            samplers=[
+                ShaderAttribute("DEPTH_2D", "depthTexture"),
             ],
             vertex_in=[
                 ShaderAttribute("VEC3", "position"),
@@ -96,15 +100,12 @@ class BlenderShaderRenderer:
                 ShaderAttribute("MAT4", "viewProjectionMatrix"),
                 ShaderAttribute("VEC3", "cameraPosition"),
             ],
+            samplers=[],
             vertex_in=[
                 ShaderAttribute("VEC3", "position"),
             ],
-            vertex_out=[
-                ShaderAttribute("VEC3", "pos"),
-            ],
-            fragment_out=[
-                ShaderAttribute("VEC4", "FragColor"),
-            ]
+            vertex_out=[],
+            fragment_out=[]
         )
 
     @staticmethod
@@ -119,6 +120,7 @@ class BlenderShaderRenderer:
             vertex_source: str,
             fragment_source: str,
             constants: Sequence[ShaderAttribute],
+            samplers: Sequence[ShaderAttribute],
             vertex_in: Sequence[ShaderAttribute],
             vertex_out: Sequence[ShaderAttribute],
             fragment_out: Sequence[ShaderAttribute],
@@ -127,6 +129,8 @@ class BlenderShaderRenderer:
 
         for constant in constants:
             shader_info.push_constant(constant.data_type, constant.name)
+        for idx, sampler in enumerate(samplers):
+            shader_info.sampler(idx, sampler.data_type, sampler.name)
         for idx, vin in enumerate(vertex_in):
             shader_info.vertex_in(idx, vin.data_type, vin.name)
 
@@ -184,26 +188,37 @@ class BlenderShaderRenderer:
             view_projection_matrix: Matrix,
             camera_position: Vector,
             light_direction: Vector,
+            light_matrix: Matrix,
             orientation_offset: float,
             width: int,
             height: int
         ) -> FloatImage:
+        batch = __class__._prepare_batch(triangles, pass_normals=False)
+        depth_texture = gpu.types.GPUTexture(size=(width, height), format="DEPTH_COMPONENT32F")
+        depth_texture.clear(format="FLOAT", value=(1.0,))
+        fb_depth = gpu.types.GPUFrameBuffer(depth_slot=depth_texture)
+        with fb_depth.bind():
+            self.depth_shader.uniform_float("viewProjectionMatrix", light_matrix)
+            __class__._set_gpu_state()
+            batch.draw(self.depth_shader)
+            __class__._reset_gpu_state()
+
         batch = __class__._prepare_batch(triangles)
-
         offscreen = gpu.types.GPUOffScreen(width, height, format="RGBA32F")
-
         with offscreen.bind():
             fb = gpu.state.active_framebuffer_get()
-            fb.clear(color=(0.0, 0.0, 0.0, 0.0), depth=float("inf"))
+            fb.clear(color=(0.0, 0.0, 0.0, 0.0), depth=1.0)
             self.main_shader.uniform_float("viewProjectionMatrix", view_projection_matrix)
+            self.main_shader.uniform_float("lightMatrix", light_matrix)
             self.main_shader.uniform_float("cameraPosition", camera_position)
             self.main_shader.uniform_float("lightDirection", light_direction)
             self.main_shader.uniform_float("orientationOffset", orientation_offset)
+            self.main_shader.uniform_sampler("depthTexture", depth_texture)
             __class__._set_gpu_state()
             batch.draw(self.main_shader)
             __class__._reset_gpu_state()
             buffer = fb.read_color(0, 0, width, height, 4, 0, "FLOAT")
+            buffer.dimensions = width * height * 4
+            image_data = [v for v in buffer]
         offscreen.free()
-        buffer.dimensions = width * height * 4
-        image_data = [v for v in buffer]
         return FloatImage(width, height, 4, image_data)

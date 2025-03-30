@@ -36,6 +36,11 @@ class BlenderScene:
     def light_direction(self) -> Vector:
         return self.light_camera.matrix_world.col[2].to_3d().normalized()
 
+    def light_matrix(self, aspect_ratio: float) -> Matrix:
+        view = self.light_camera.matrix_world.inverted()
+        projection = self.light_camera.calc_matrix_camera(depsgraph=bpy.context.evaluated_depsgraph_get(), scale_x=aspect_ratio)
+        return projection @ view
+
     def world_triangle_data(self) -> MeshTriangles:
         all_vertices = []
         all_normals = []

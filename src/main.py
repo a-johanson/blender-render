@@ -34,13 +34,24 @@ projection_matrix = scene.camera_projection_matrix(aspect_ratio)
 view_projection_matrix = projection_matrix @ view_matrix
 camera_position = scene.camera_position()
 light_direction = scene.light_direction()
+light_matrix = scene.light_matrix(aspect_ratio)
 print("View matrix:", view_matrix)
 print("Projection matrix:", projection_matrix)
 print("View-projection matrix:", view_projection_matrix)
 print("Camera position:", camera_position)
 print("Light direction:", light_direction)
+print("Light view-projection matrix:", light_matrix)
 
-image = renderer.render_triangles(triangle_data, view_projection_matrix, camera_position, light_direction, 0.5 * math.pi, width, height)
+image = renderer.render_triangles(
+    triangle_data,
+    view_projection_matrix,
+    camera_position,
+    light_direction,
+    light_matrix,
+    0.5 * math.pi,
+    width,
+    height
+)
 print("Lightness range:", np.min(image.data[::image.channels]), np.max(image.data[::image.channels]))
 print("Orientation range:", np.min(image.data[1::image.channels]), np.max(image.data[1::image.channels]))
 print("Depth range:", np.min(image.data[2::image.channels]), np.max(image.data[2::image.channels]))
