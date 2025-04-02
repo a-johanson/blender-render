@@ -46,9 +46,13 @@ class BlenderScene:
         all_normals = []
 
         mesh_objects = [obj for obj in bpy.context.scene.objects if obj.type == "MESH"]
+        depsgraph = bpy.context.evaluated_depsgraph_get()
 
         for obj in mesh_objects:
-            mesh = obj.data
+            evaluated_obj = depsgraph.objects.get(obj.name)
+            if not evaluated_obj:
+                continue
+            mesh = evaluated_obj.data
             print(f"Processing object: {obj.name}")
 
             model_matrix = obj.matrix_world
