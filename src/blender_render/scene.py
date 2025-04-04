@@ -11,8 +11,8 @@ class MeshTriangles:
 
 class BlenderScene:
     def __init__(self):
-        self.camera = self._first_camera()
-        assert self.camera is not None, "No camera with perspective projection found in the scene"
+        self.camera = self._scene_camera()
+        assert self.camera is not None, "No main camera found in the scene"
         self.light_camera = self._first_camera(camera_type="ORTHO")
         assert self.light_camera is not None, "No camera with orthogonal projection found in the scene for lighting"
         bpy.context.scene.camera = self.camera
@@ -23,6 +23,11 @@ class BlenderScene:
             if obj.type == "CAMERA" and obj.data.type == camera_type:
                 return obj
         return None
+
+    def _scene_camera(self) -> Optional[bpy.types.Object]:
+        if bpy.context.scene.camera is not None:
+            return bpy.context.scene.camera
+        return self._first_camera()
 
     def camera_view_matrix(self) -> (Any | Matrix):
         return self.camera.matrix_world.inverted()
