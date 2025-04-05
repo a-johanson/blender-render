@@ -1,7 +1,9 @@
-import bpy
 from dataclasses import dataclass
 from typing import Any, Optional, Sequence
+
+import bpy
 from mathutils import Matrix, Vector
+
 
 @dataclass
 class MeshTriangles:
@@ -10,24 +12,15 @@ class MeshTriangles:
     indices: Optional[Sequence[Sequence[int]]] # One index sequence per triangle; if None, each triplet of vertices forms a triangle.
 
 class BlenderScene:
-    def __init__(self):
-        self.camera = self._scene_camera()
-        assert self.camera is not None, "No main camera found in the scene"
-        self.light_camera = self._first_camera(camera_type="ORTHO")
-        assert self.light_camera is not None, "No camera with orthogonal projection found in the scene for lighting"
+    def __init__(self, camera_name: str, light_name: str):
+        self.camera = bpy.data.objects.get(camera_name)
+        assert self.camera is not None, f"Camera '{camera_name}' not found in the scene"
+        assert self.camera.type == "CAMERA", f"Object '{camera_name}' is not a camera"
+        self.light = bpy.data.objects.get(light_name)
+        assert self.light is not None, f"Light '{light_name}' not found in the scene"
+        assert self.light.type == "LIGHT", f"Object '{light_name}' is not a light"
         bpy.context.scene.camera = self.camera
         bpy.context.view_layer.update()
-
-    def _first_camera(self, camera_type="PERSP") -> Optional[bpy.types.Object]:
-        for obj in bpy.context.scene.objects:
-            if obj.type == "CAMERA" and obj.data.type == camera_type:
-                return obj
-        return None
-
-    def _scene_camera(self) -> Optional[bpy.types.Object]:
-        if bpy.context.scene.camera is not None:
-            return bpy.context.scene.camera
-        return self._first_camera()
 
     def camera_view_matrix(self) -> (Any | Matrix):
         return self.camera.matrix_world.inverted()
@@ -38,13 +31,8 @@ class BlenderScene:
     def camera_position(self) -> Vector:
         return self.camera.matrix_world.to_translation()
 
-    def light_direction(self) -> Vector:
-        return self.light_camera.matrix_world.col[2].to_3d().normalized()
-
-    def light_matrix(self, aspect_ratio: float) -> Matrix:
-        view = self.light_camera.matrix_world.inverted()
-        projection = self.light_camera.calc_matrix_camera(depsgraph=bpy.context.evaluated_depsgraph_get(), scale_x=aspect_ratio)
-        return projection @ view
+    def light_position(self) -> Vector:
+        return self.light.matrix_world.to_translation()
 
     def world_triangle_data(self) -> MeshTriangles:
         all_vertices = []

@@ -1,7 +1,9 @@
-import sys
-import os
 import math
+import os
+import sys
+
 import numpy as np
+
 
 print("Script arguments:", sys.argv)
 
@@ -15,9 +17,9 @@ for module in modules_to_remove:
     del sys.modules[module]
 
 
-from blender_render import BlenderScene, BlenderShaderRenderer, scene
+from blender_render import BlenderScene, BlenderShaderRenderer
 
-scene = BlenderScene()
+scene = BlenderScene("Camera", "Light")
 
 triangle_data = scene.world_triangle_data()
 print("Vertex count:", len(triangle_data.vertices))
@@ -33,28 +35,33 @@ view_matrix = scene.camera_view_matrix()
 projection_matrix = scene.camera_projection_matrix(aspect_ratio)
 view_projection_matrix = projection_matrix @ view_matrix
 camera_position = scene.camera_position()
-light_direction = scene.light_direction()
-light_matrix = scene.light_matrix(aspect_ratio)
+light_position = scene.light_position()
 print("View matrix:", view_matrix)
 print("Projection matrix:", projection_matrix)
 print("View-projection matrix:", view_projection_matrix)
 print("Camera position:", camera_position)
-print("Light direction:", light_direction)
-print("Light view-projection matrix:", light_matrix)
+print("Light position:", light_position)
 
-image = renderer.render_triangles(
+image_orientation_depth = renderer.render_orientation_and_depth(
     triangle_data,
     view_projection_matrix,
     camera_position,
-    light_direction,
-    light_matrix,
+    light_position,
     0.5 * math.pi,
     width,
     height
 )
-print("Lightness range:", np.min(image.data[::image.channels]), np.max(image.data[::image.channels]))
-print("Orientation range:", np.min(image.data[1::image.channels]), np.max(image.data[1::image.channels]))
-print("Depth range:", np.min(image.data[2::image.channels]), np.max(image.data[2::image.channels]))
-image.normalize_channels_independently(value_range=1.0)
-image.to_png(os.path.join(module_path, "output.png"))
-# image.to_binary_file(os.path.join(module_path, "output.bin"), channels_to_store={0, 1, 2})
+image_rgb = BlenderShaderRenderer.render_blender_scene(width, height)
+
+print("Image RGB shape:", image_rgb.shape)
+print("Image Orientation-Depth shape:", image_orientation_depth.shape)
+
+image_orientation_depth_rgb = np.concatenate((image_orientation_depth, image_rgb), axis=-1)
+print("Merged image shape:", image_orientation_depth_rgb.shape)
+
+np.savez_compressed(
+    os.path.join(module_path, "render.npz"),
+    allow_pickle=False,
+    image_orientation_depth_rgb=image_orientation_depth_rgb
+)
+print("Image written to disk")
