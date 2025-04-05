@@ -182,6 +182,32 @@ class BlenderShaderRenderer:
         gpu.state.face_culling_set("NONE")
         gpu.state.front_facing_set(False)
 
+    def render_blender_scene(self, width: int, height: int) -> np.ndarray:
+        # See https://ammous88.wordpress.com/2015/01/16/blender-access-render-results-pixels-directly-from-python-2/
+        assert bpy.context.scene.use_nodes, "Blender scene does not use the compositing node tree -- ensure to enable it in the scene"
+        viewer_image = bpy.data.images.get("Viewer Node")
+        assert viewer_image is not None, "Viewer Node image not found -- make sure to add a Viewer Node to the compositing node tree"
+
+        # bpy.context.scene.render.image_settings.file_format = "PNG"
+        # bpy.context.scene.render.image_settings.color_mode = "RGB"
+        # bpy.context.scene.render.image_settings.color_depth = "8"
+        # bpy.context.scene.render.image_settings.compression = 100
+        # bpy.context.scene.render.filepath = output_path
+        # bpy.context.scene.render.use_overwrite = True
+
+        bpy.context.scene.render.resolution_x = width
+        bpy.context.scene.render.resolution_y = height
+        bpy.context.scene.render.pixel_aspect_x = 1.0
+        bpy.context.scene.render.pixel_aspect_y = 1.0
+        bpy.context.scene.render.resolution_percentage = 100
+
+        bpy.ops.render.render(animation=False, write_still=False, use_viewport=False)
+
+        assert viewer_image.size[0] == width and viewer_image.size[1] == height, "Viewer Node image size does not match the width and height of the rendered image"
+        pixels = np.array(viewer_image.pixels[:], dtype=np.float32)
+        rgb_pixels = pixels.reshape((width, height, 4))[:, :, :3]
+        return rgb_pixels
+
     def render_triangles(
             self,
             triangles: MeshTriangles,
