@@ -57,6 +57,12 @@ print("Image RGB shape:", image_rgb.shape)
 print("Image Orientation-Depth shape:", image_orientation_depth.shape)
 
 image_orientation_depth_rgb = np.flip(np.concatenate((image_orientation_depth, image_rgb), axis=-1), axis=0)
+# Scale dynamic range of the RGB channels
+max_rgb = image_orientation_depth_rgb[:, :, 2:].max()
+image_orientation_depth_rgb[:, :, 2:] /= max_rgb
+# Apply gamma correction to the RGB channels
+gamma = 2.2
+image_orientation_depth_rgb[:, :, 2:] = np.power(image_orientation_depth_rgb[:, :, 2:], 1.0 / gamma)
 print("Merged image shape:", image_orientation_depth_rgb.shape)
 print("Orientation range:", image_orientation_depth_rgb[:, :, 0].min(), image_orientation_depth_rgb[:, :, 0].max())
 print("Depth range:", image_orientation_depth_rgb[:, :, 1].min(), image_orientation_depth_rgb[:, :, 1].max())
