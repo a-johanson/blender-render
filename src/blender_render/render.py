@@ -140,7 +140,7 @@ class BlenderShaderRenderer:
 
         assert viewer_image.size[0] == width and viewer_image.size[1] == height, "Viewer Node image size does not match the width and height of the rendered image"
         pixels = np.array(viewer_image.pixels[:], dtype=np.float32)
-        rgb_pixels = pixels.reshape((width, height, 4))[:, :, :3]
+        rgb_pixels = pixels.reshape((height, width, 4))[:, :, :3]
         return rgb_pixels
 
     def render_orientation_and_depth(
@@ -170,5 +170,5 @@ class BlenderShaderRenderer:
             buffer = color_texture.read()
             buffer.dimensions = width * height * 2
             pixels = np.array([v for v in buffer], dtype=np.float32)
-        orientation_depth_pixels = pixels.reshape((width, height, 2))
+        orientation_depth_pixels = pixels.reshape((height, width, 2))
         return orientation_depth_pixels

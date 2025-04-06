@@ -17,7 +17,7 @@ for module in modules_to_remove:
     del sys.modules[module]
 
 
-from blender_render import BlenderScene, BlenderShaderRenderer
+from blender_render import BlenderScene, BlenderShaderRenderer, ndarray_to_gz_file
 
 scene = BlenderScene("Camera", "Light")
 
@@ -56,12 +56,11 @@ image_rgb = BlenderShaderRenderer.render_blender_scene(width, height)
 print("Image RGB shape:", image_rgb.shape)
 print("Image Orientation-Depth shape:", image_orientation_depth.shape)
 
-image_orientation_depth_rgb = np.concatenate((image_orientation_depth, image_rgb), axis=-1)
+image_orientation_depth_rgb = np.flip(np.concatenate((image_orientation_depth, image_rgb), axis=-1), axis=0)
 print("Merged image shape:", image_orientation_depth_rgb.shape)
+print("Orientation range:", image_orientation_depth_rgb[:, :, 0].min(), image_orientation_depth_rgb[:, :, 0].max())
+print("Depth range:", image_orientation_depth_rgb[:, :, 1].min(), image_orientation_depth_rgb[:, :, 1].max())
+print("RGB range:", image_orientation_depth_rgb[:, :, 2:].min(), image_orientation_depth_rgb[:, :, 2:].max())
 
-np.savez_compressed(
-    os.path.join(module_path, "render.npz"),
-    allow_pickle=False,
-    image_orientation_depth_rgb=image_orientation_depth_rgb
-)
+ndarray_to_gz_file(image_orientation_depth_rgb, os.path.join(module_path, "render.bin.gz"))
 print("Image written to disk")
