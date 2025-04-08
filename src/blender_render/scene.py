@@ -38,24 +38,16 @@ class BlenderScene:
         all_vertices = []
         all_normals = []
 
-        mesh_objects = [obj for obj in bpy.context.scene.objects if obj.type == "MESH"]
         depsgraph = bpy.context.evaluated_depsgraph_get()
 
-        for obj in mesh_objects:
-            evaluated_obj = depsgraph.objects.get(obj.name)
-            if not evaluated_obj:
+        for inst in depsgraph.object_instances:
+            obj = inst.object
+            if obj.type != "MESH" or not inst.show_self:
                 continue
-            mesh = evaluated_obj.data
-            print(f"Processing object: {obj.name}")
 
-            model_matrix = obj.matrix_world
+            mesh = obj.data
+            model_matrix = inst.matrix_world
             normal_matrix = model_matrix.inverted().transposed().to_3x3()
-
-            print("Model Matrix:")
-            print(model_matrix)
-
-            print("Normal Matrix")
-            print(normal_matrix)
 
             world_vertices = [(model_matrix @ vertex.co.to_4d()).to_3d() for vertex in mesh.vertices]
             world_vertex_normals = [(normal_matrix @ vertex.normal).normalized() for vertex in mesh.vertices]
