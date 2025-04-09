@@ -12,19 +12,19 @@ def gz_file_to_ndarray(path: str) -> np.ndarray:
     return np.frombuffer(data, dtype=np.float32).reshape(shape).copy()
 
 file_path = os.path.dirname(os.path.abspath(__file__))
-image_orientation_depth_rgb = gz_file_to_ndarray(os.path.join(file_path, "render.bin.gz"))
-print("Image Orientation-Depth RGB shape:", image_orientation_depth_rgb.shape)
+image_orientation_depth = gz_file_to_ndarray(os.path.join(file_path, "render.bin.gz"))
+print("Image Orientation-Depth shape:", image_orientation_depth.shape)
 
-# image_orientation_depth_rgb = np.flip(image_orientation_depth_rgb, axis=0)
 
-# max_rgb = image_orientation_depth_rgb[:, :, 2:].max()
-# image_orientation_depth_rgb[:, :, 2:] /= max_rgb
+fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
-# gamma = 2.2
-# image_orientation_depth_rgb[:, :, 2:] = np.power(image_orientation_depth_rgb[:, :, 2:], 1.0 / gamma)
+axes[0].imshow(image_orientation_depth[:, :, 0])
+axes[0].set_title("Orientation Channel")
+axes[0].axis("off")
 
-plt.imshow(image_orientation_depth_rgb[:, :, 2:])
-plt.title("Preview of RGB Channels")
-plt.axis("off")
+axes[1].imshow(image_orientation_depth[:, :, 1])
+axes[1].set_title("Depth Channel")
+axes[1].axis("off")
+
+plt.tight_layout()
 plt.show()
-

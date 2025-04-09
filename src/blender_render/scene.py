@@ -12,15 +12,12 @@ class MeshTriangles:
     indices: Optional[Sequence[Sequence[int]]] # One index sequence per triangle; if None, each triplet of vertices forms a triangle.
 
 class BlenderScene:
-    def __init__(self, camera_name: str, light_name: str):
-        self.camera = bpy.data.objects.get(camera_name)
-        assert self.camera is not None, f"Camera '{camera_name}' not found in the scene"
-        assert self.camera.type == "CAMERA", f"Object '{camera_name}' is not a camera"
+    def __init__(self, light_name: str):
+        self.camera = bpy.context.scene.camera
+        assert self.camera is not None, f"No active camera found in the scene"
         self.light = bpy.data.objects.get(light_name)
         assert self.light is not None, f"Light '{light_name}' not found in the scene"
         assert self.light.type == "LIGHT", f"Object '{light_name}' is not a light"
-        bpy.context.scene.camera = self.camera
-        bpy.context.view_layer.update()
 
     def camera_view_matrix(self) -> (Any | Matrix):
         return self.camera.matrix_world.inverted()

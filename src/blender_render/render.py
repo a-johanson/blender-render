@@ -117,18 +117,28 @@ class BlenderShaderRenderer:
         gpu.state.front_facing_set(False)
 
     @staticmethod
-    def render_blender_scene(width: int, height: int) -> np.ndarray:
+    def render_scene_to_disk(filepath: str, width: int, height: int):
+        bpy.context.scene.render.image_settings.file_format = "PNG"
+        bpy.context.scene.render.image_settings.color_mode = "RGB"
+        bpy.context.scene.render.image_settings.color_depth = "8"
+        bpy.context.scene.render.image_settings.compression = 100
+        bpy.context.scene.render.filepath = filepath
+        bpy.context.scene.render.use_overwrite = True
+
+        bpy.context.scene.render.resolution_x = width
+        bpy.context.scene.render.resolution_y = height
+        bpy.context.scene.render.pixel_aspect_x = 1.0
+        bpy.context.scene.render.pixel_aspect_y = 1.0
+        bpy.context.scene.render.resolution_percentage = 100
+
+        bpy.ops.render.render(animation=False, write_still=True, use_viewport=False)
+
+    @staticmethod
+    def render_scene(width: int, height: int) -> np.ndarray:
         # See https://ammous88.wordpress.com/2015/01/16/blender-access-render-results-pixels-directly-from-python-2/
         assert bpy.context.scene.use_nodes, "Blender scene does not use the compositing node tree -- ensure to enable it in the scene"
         viewer_image = bpy.data.images.get("Viewer Node")
         assert viewer_image is not None, "Viewer Node image not found -- make sure to add a Viewer Node to the compositing node tree"
-
-        # bpy.context.scene.render.image_settings.file_format = "PNG"
-        # bpy.context.scene.render.image_settings.color_mode = "RGB"
-        # bpy.context.scene.render.image_settings.color_depth = "8"
-        # bpy.context.scene.render.image_settings.compression = 100
-        # bpy.context.scene.render.filepath = output_path
-        # bpy.context.scene.render.use_overwrite = True
 
         bpy.context.scene.render.resolution_x = width
         bpy.context.scene.render.resolution_y = height
@@ -157,7 +167,7 @@ class BlenderShaderRenderer:
         depth_texture = gpu.types.GPUTexture(size=(width, height), format="DEPTH_COMPONENT32F")
         depth_texture.clear(format="FLOAT", value=(1.0,))
         color_texture = gpu.types.GPUTexture(size=(width, height), format="RG32F")
-        color_texture.clear(format="FLOAT", value=(0.0, 0.0))
+        color_texture.clear(format="FLOAT", value=(0.0, -1.0))
         fb = gpu.types.GPUFrameBuffer(depth_slot=depth_texture, color_slots=color_texture)
         with fb.bind():
             self.shader.uniform_float("viewProjectionMatrix", view_projection_matrix)
@@ -170,5 +180,5 @@ class BlenderShaderRenderer:
             buffer = color_texture.read()
             buffer.dimensions = width * height * 2
             pixels = np.array([v for v in buffer], dtype=np.float32)
-        orientation_depth_pixels = pixels.reshape((height, width, 2))
+        orientation_depth_pixels = np.flip(pixels.reshape((height, width, 2)), axis=0)
         return orientation_depth_pixels
