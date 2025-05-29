@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import Any, Optional, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 import bpy
 from mathutils import Matrix, Vector
@@ -9,7 +10,7 @@ from mathutils import Matrix, Vector
 class MeshTriangles:
     vertices: Sequence[Vector]
     normals: Sequence[Vector]
-    indices: Optional[Sequence[Sequence[int]]] # One index sequence per triangle; if None, each triplet of vertices forms a triangle.
+    indices: Sequence[Sequence[int]] | None # One index sequence per triangle; if None, each triplet of vertices forms a triangle.
 
 class BlenderScene:
     def __init__(self, light_name: str):
@@ -17,7 +18,11 @@ class BlenderScene:
         assert self.camera is not None, f"No active camera found in the scene"
         self.light = bpy.data.objects.get(light_name)
         assert self.light is not None, f"Light '{light_name}' not found in the scene"
-        assert self.light.type == "LIGHT", f"Object '{light_name}' is not a light"
+        assert self.light.type == "EMPTY", f"Object '{light_name}' is not an empty"
+
+    def render_resolution(self) -> tuple[int, int]:
+        render = bpy.context.scene.render
+        return render.resolution_x, render.resolution_y
 
     def camera_view_matrix(self) -> (Any | Matrix):
         return self.camera.matrix_world.inverted()
@@ -30,6 +35,10 @@ class BlenderScene:
 
     def light_position(self) -> Vector:
         return self.light.matrix_world.to_translation()
+
+    def light_direction(self) -> Vector:
+        direction = self.light.matrix_world.to_3x3() @ Vector((0.0, 0.0, 1.0))
+        return direction.normalized()
 
     def world_triangle_data(self) -> MeshTriangles:
         all_vertices = []

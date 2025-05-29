@@ -2,6 +2,7 @@ import math
 import os
 import sys
 
+import numpy as np
 
 print("Script arguments:", sys.argv)
 
@@ -24,11 +25,9 @@ print("Vertex count:", len(triangle_data.vertices))
 print("Normal count:", len(triangle_data.normals))
 
 renderer = BlenderShaderRenderer()
-height = 512
-aspect_ratio = 1.5
-output_file_base_name = "render"
-width = int(height * aspect_ratio)
-print("Image size:", width, "x", height)
+width, height = scene.render_resolution()
+aspect_ratio = width / height
+print(f"Image size: {width} x {height} (aspect ratio: {aspect_ratio})")
 
 view_matrix = scene.camera_view_matrix()
 projection_matrix = scene.camera_projection_matrix(aspect_ratio)
@@ -41,18 +40,21 @@ print("View-projection matrix:", view_projection_matrix)
 print("Camera position:", camera_position)
 print("Light position:", light_position)
 
-image_orientation_depth = renderer.render_orientation_and_depth(
+pixels_orientation_depth_value = renderer.render_depth_orientation_value(
     triangle_data,
     view_projection_matrix,
     camera_position,
     light_position,
+    True,
     0.5 * math.pi,
     width,
     height
 )
-print("Orientation range:", image_orientation_depth[:, :, 0].min(), image_orientation_depth[:, :, 0].max())
-print("Depth range:", image_orientation_depth[:, :, 1].min(), image_orientation_depth[:, :, 1].max())
+image_depth_orientation_value = np.array(pixels_orientation_depth_value, dtype=np.float32).reshape((height, width, 3))
+print(image_depth_orientation_value.shape)
+print("Depth range:", image_depth_orientation_value[:, :, 0].min(), image_depth_orientation_value[:, :, 0].max())
+print("Orientation range:", image_depth_orientation_value[:, :, 1].min(), image_depth_orientation_value[:, :, 1].max())
+print("Value range:", image_depth_orientation_value[:, :, 2].min(), image_depth_orientation_value[:, :, 2].max())
 
-image_rgb = BlenderShaderRenderer.render_scene_to_disk(os.path.join(module_path, f"{output_file_base_name}.png"), width, height)
-ndarray_to_gz_file(image_orientation_depth, os.path.join(module_path, f"{output_file_base_name}.bin.gz"))
-print("Rendered image as well as orientation and depth data written to disk")
+ndarray_to_gz_file(image_depth_orientation_value, os.path.join(module_path, f"render_dov.bin.gz"))
+print("Rendered image data written to disk")
