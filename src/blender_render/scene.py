@@ -23,12 +23,21 @@ class BlenderScene:
     def render_resolution(self) -> tuple[int, int]:
         render = bpy.context.scene.render
         return render.resolution_x, render.resolution_y
+    
+    def ratio_sensor_size_to_focal_length(self) -> float:
+        camera_data = self.camera.data
+        focal_length = camera_data.lens
+        sensor_size = camera_data.sensor_width
+        return sensor_size / focal_length
 
     def camera_view_matrix(self) -> (Any | Matrix):
         return self.camera.matrix_world.inverted()
 
     def camera_projection_matrix(self, aspect_ratio: float) -> Matrix:
         return self.camera.calc_matrix_camera(depsgraph=bpy.context.evaluated_depsgraph_get(), scale_x=aspect_ratio)
+
+    def camera_rotation_matrix(self) -> Matrix:
+        return self.camera.matrix_world.to_3x3()
 
     def camera_position(self) -> Vector:
         return self.camera.matrix_world.to_translation()
